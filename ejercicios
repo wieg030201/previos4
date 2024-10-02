@@ -1,0 +1,33 @@
+// Ejercicio 1
+
+#include <>
+#include "config.h"
+
+static int ticks1=0; //Variables que podemos usar en el main y en la interrupción
+static int ticks2=0;
+
+int main (void){
+inicializarReloj();
+AD1PCFGL=0xFFFF; //Pines digitales
+
+//salidas
+TRISB&= 0x3FFF; Salidas los leds 15 y 14
+//Entradas 
+TRISB|=(1<<2);
+//Leds inicialmente apagados
+PORTB|=0xC000;
+
+//Configuramos timer
+T1CON=0x0030; //escogemos preescalado 3
+PR1=39062;
+TMR1=0; //Inicia la cuenta desde 0.
+IFS0bits.T1IF=0; // Pongo bandera a 0
+IEC0bits.T1IE=1;// Habilito interrupción
+IPC0bits.T1IP=3; // prioridad 3
+T1CON|=(1<<15); //Comienza el timer 1
+
+int pulsador;
+int pulsador_ant;
+int pulso=0;
+
+while(1){
