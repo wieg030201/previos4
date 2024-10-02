@@ -100,7 +100,338 @@ void inicializarTimer (unsigned int dms){
 
 if( dms<=16){
 T1CON=0x0000;
-PR1=
+PR1=dms*(FCY/10000);
+}
+
+else if(dms<=132){
+T1CON=0x0010;
+PR1=dms*(FCY/80000);
+}
+
+else if (dms<=10598){
+T1CON=0x0020;
+PR1=dms*(FCY/640000);
+}
+
+else if(dms<=4235){
+T1CON=0x0030;
+PR1=dms*(FCY/2560000);
+}
+else {
+dms=4235;
+T1CON=0x0030;
+PR1=dms*(FCY/2560000);
+}
+
+TMR1=0;
+IFS0bits.T1IF=0; // bandera a 0
+IEC0bits.T1IE=1; //Habilitamos interrupción
+IPC0bits.T1IP=4; // Prioridad intermedia
+T1CON|=(1<<15); // Comienza a contar
+}
+
+//Utilizando la nueva funcion en el programa anterior
+
+#include <>
+#include "config.h"
+#include "timer.h"
+
+static int ticks1=0; //Variables que podemos usar en el main y en la interrupción
+static int ticks2=0;
+static int pulso=0;
+static int periodo;
+
+int main (void){
+inicializarReloj();
+AD1PCFGL=0xFFFF; //Pines digitales
+
+//salidas
+TRISB&= 0x3FFF; Salidas los leds 15 y 14
+//Entradas 
+TRISB|=(1<<2);
+//Leds inicialmente apagados
+PORTB|=0xC000;
+
+//Configuramos timer
+inicializarTimer(2500);
+
+int pulsador;
+int pulsador_ant; //Para detectar el flanco
+int pulso=0;
+
+while(1){ 
+if(pulso%2==0){
+periodo=2;
+}
+else{
+periodo=10;
+}
+if(ticks1<periodo){
+PORTB&=~(1<<14);
+}
+else{
+PORTB|=(1<<14);}
+
+if(ticks2<5){
+PORTB&=~(1<<15);
+}
+else {
+PORTB|=(1<<15);
+}
+}
+return 0;
+}
+
+void_attribute_((interrupt,no_auto_psv))
+_T1Interrupt(void){
+static int pulsador=1;
+int pulsador_ant;
+
+IFS0bits.T1IF=0;//ponemos bandera a 0
+
+pulsador_ant=pulsador;
+pulsador=(PORTB>>2)&(0x0001);
+
+ticks1++;
+if(ticks1>=(periodo*2)){
+ticks1=0;
+}
+ticks2++;
+if(ticks2>19){
+ticks2=0;
+}
+if(pulsador<pulsador_ant){
+pulso++;
+//Condición para que empiecen a la vez
+ticks1=0;
+ticks2=0;}
+}
+
+// Aprendiendo a resolver problemas
+//1 configurando el timer en el main.c
+
+#include <>
+#include "config.h"
+
+static int ticks=0;
+static int seg=0;
+static int periodo_enc=0;
+
+int main (void){
+//inicializamos salidas
+TRISB&=~(1<<13);
+PORTB|=(1<<13); //led incialmente apgado
+
+//inicializamos timer
+T1CON=0x0000;
+PR1=40000;
+TMR1=0;
+IFS0bits.T1IF=0; //Bandera a 0;
+IEC0bits.T1IE=1; // Habilitamos interrupción
+IPC0bits.T1IP=4; //prioridad
+T1CON|=(1<<15); // iniciamos cuenta
+
+while(1){
+
+if(ticks<periodo_enc){
+PORTB&= ~(1<<13);
+}
+else{
+PORTB|=(1<<13);
+}
+}
+return 0;
+}
+
+
+void_attribute_((interrupt,no_auto_psv))
+_T1Interrupt(void){
+static int miliseg=0;
+IFS0bits.T1IF=0; // bandera a 0
+miliseg++;
+
+if(miliseg>=1000){
+seg++;
+miliseg=0;
+periodo_enc=periodo_enc+2;
+}
+
+ticks++;
+if(ticks>9){
+ticks=0;}
+
+if(periodo_enc>10){
+periodo_enc=0;
+}
+
+}
+
+// Moviendo a timer c
+
+
+// CUERPO FUNCIÓN timer.c
+
+#include <p33FJ32MC202.h>
+#include "config.h"
+
+void inicializarTimer (unsigned int dms){
+
+if( dms<=16){
+T1CON=0x0000;
+PR1=dms*(FCY/10000);
+}
+
+else if(dms<=132){
+T1CON=0x0010;
+PR1=dms*(FCY/80000);
+}
+
+else if (dms<=10598){
+T1CON=0x0020;
+PR1=dms*(FCY/640000);
+}
+
+else if(dms<=4235){
+T1CON=0x0030;
+PR1=dms*(FCY/2560000);
+}
+else {
+dms=4235;
+T1CON=0x0030;
+PR1=dms*(FCY/2560000);
+}
+
+TMR1=0;
+IFS0bits.T1IF=0; // bandera a 0
+IEC0bits.T1IE=1; //Habilitamos interrupción
+IPC0bits.T1IP=4; // Prioridad intermedia
+T1CON|=(1<<15); // Comienza a contar
+}
+
+void_attribute_((interrupt,no_auto_psv))
+_T1Interrupt(void){
+static int miliseg=0;
+stactic int ticks=0;
+static int periodo_enc=0;
+
+IFS0bits.T1IF=0; // bandera a 0
+miliseg++;
+
+if(ticks<periodo_enc){
+PORTB&= ~(1<<13);
+}
+else{
+PORTB|=(1<<13);
+}
+
+if(miliseg>=1000){
+miliseg=0;
+periodo_enc=periodo_enc+2;
+}
+
+ticks++;
+if(ticks>9){
+ticks=0;}
+
+if(periodo_enc>10){
+periodo_enc=0;
+}
+}
+
+// llamando a la función desde el main
+
+#include <>
+#include "config.h"
+#include "timer.h"
+
+int main (void){
+inicializarReloj();
+
+TRISB&=~(1<<13);
+PORTB|=(1<<13);
+
+inicializarTimer(10);
+while(1);
+return 0;
+}
+
+// EJERCITANDO LA CAPACIDAD DE CREACIÓN
+
+// CABECERA FUNCIÓN pwm.h
+
+#indef _PWM_H
+#define _PWM_H
+
+void inicializarPWM(unsigned int ms);
+void periodoPWM(unsigned int dms);
+void dcPWM(unsigned int dms);
+
+
+#endif
+
+// CUERPO FUNCIÓN pwm.c
+
+# include<>
+# include"config.h"
+
+static int periodo;
+static int tiempo_apagado;
+
+void periodoPWM(unsigned int dms){
+periodo=dms;
+}
+
+void dcPWM (unsigned int dms){
+tiempo_apagado=dms;
+}
+void inicializarPWM(void){
+T2CON=0x0000;
+PR2=FCY/10000;
+TMR2=0;
+IFS0bits.T2IF=0; // bandera a 0
+IEC0bits.T2IE=1; //Habilitamos interrupción
+IPC0bits.T2IP=4; // Prioridad intermedia
+T2CON|=(1<<15); // Comienza a contar
+}
+
+void_attribute_((interrupt,no_auto_psv))
+_T1Interrupt(void){
+static int ticks=0;
+IFS0bits.T2IF=0;
+if(ticks<tiempo_apagado){
+PORTB|=(1<<15);
+}
+else{
+PORTB&=~(1<<15);
+}
+ticks++;
+if (ticks>=periodo){
+ticks=0;
+}
+
+}
+
+// main.c con led 
+# include<>
+# include"config.h"
+# include "pwm.h"
+
+int main (void){
+
+inicializarReloj();
+
+TRISB&=~(1<<12);
+PORTB|=(1<<12);
+while(1){
+
+periodoPWM(10000);
+dcPWM(7500);
+inicializarPWM();
+}
+return 0;
+}
+
+
 
 
 
