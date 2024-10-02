@@ -5,6 +5,8 @@
 
 static int ticks1=0; //Variables que podemos usar en el main y en la interrupción
 static int ticks2=0;
+static int pulso=0;
+static int periodo;
 
 int main (void){
 inicializarReloj();
@@ -27,7 +29,94 @@ IPC0bits.T1IP=3; // prioridad 3
 T1CON|=(1<<15); //Comienza el timer 1
 
 int pulsador;
-int pulsador_ant;
+int pulsador_ant; //Para detectar el flanco
 int pulso=0;
 
-while(1){
+while(1){ 
+if(pulso%2==0){
+periodo=2;
+}
+else{
+periodo=10;
+}
+if(ticks1<periodo){
+PORTB&=~(1<<14);
+}
+else{
+PORTB|=(1<<14);}
+
+if(ticks2<5){
+PORTB&=~(1<<15);
+}
+else {
+PORTB|=(1<<15);
+}
+}
+return 0;
+}
+
+void_attribute_((interrupt,no_auto_psv))
+_T1Interrupt(void){
+static int pulsador=1;
+int pulsador_ant;
+
+IFS0bits.T1IF=0;//ponemos bandera a 0
+
+pulsador_ant=pulsador;
+pulsador=(PORTB>>2)&(0x0001);
+
+ticks1++;
+if(ticks1>=(periodo*2)){
+ticks1=0;
+}
+ticks2++;
+if(ticks2>19){
+ticks2=0;
+}
+if(pulsador<pulsador_ant){
+pulso++;
+//Condición para que empiecen a la vez
+ticks1=0;
+ticks2=0;}
+}
+
+//Ejercicio 2 EJERCITANTO LA CAPACIDAD DE REACCIÓN
+
+//ARCHIVO DE CABECERA timer.h
+
+#indef _TIMER_H
+#define _TIMER_H
+
+void inicializarTimer(unsigned int ms);
+
+#endif
+
+// CUERPO FUNCIÓN timer.c
+
+#include <p33FJ32MC202.h>
+#include "config.h"
+
+void inicializarTimer (unsigned int dms){
+
+if( dms<=16){
+T1CON=0x0000;
+PR1=
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
